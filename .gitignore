@@ -1,17 +1,26 @@
-# Python
+# --- Python / Poetry ---
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 *.so
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
+dist/
+build/
+*.egg-info/
 
 # Environments
 .env
 .venv/
 .envrc
+
+# model weights / large binaries
+models/
+*.pth
 
 # Poetry
 poetry.lock
@@ -26,8 +35,23 @@ poetry.lock
 
 # Project data (do NOT commit documents / indexes)
 data/raw/
-data/processed/
+data/glossary/
+data/manifest.json
 data/vectorstore/
+data/processed/
+layout/
+layout_ocr/
+canon/
+export/
+out/
+*.sqlite3
+*.bin
+data/inbox/
+apps/rag-ba-ocr/data
+apps/rag-ba-ocr/export/
+apps/rag-ba-ocr/layout_ocr/
+apps/rag-ba-ocr/canon/
+apps/rag-ba-ocr/out
 
 # Local model caches (optional)
 .cache/

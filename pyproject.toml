@@ -5,7 +5,7 @@ description = ""
 authors = [
     {name = "MarsBroshok96",email = "marsbroshok1996@gmail.com"}
 ]
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.11,<3.15"
 dependencies = [
     "llama-index (>=0.14.13,<0.15.0)",
     "chromadb (>=1.4.1,<2.0.0)",
@@ -15,7 +15,20 @@ dependencies = [
     "loguru (>=0.7.3,<0.8.0)",
     "llama-index-embeddings-huggingface (>=0.6.1,<0.7.0)",
     "llama-index-vector-stores-chroma (>=0.5.5,<0.6.0)",
-    "llama-index-llms-ollama (>=0.9.1,<0.10.0)"
+    "llama-index-llms-ollama (>=0.9.1,<0.10.0)",
+    "pypdf (>=6.7.0,<7.0.0)",
+    "tqdm (>=4.67.3,<5.0.0)",
+    "python-docx (>=1.2.0,<2.0.0)",
+    "pdfplumber (>=0.11.9,<0.12.0)",
+    "layoutparser (>=0.3.4,<0.4.0)",
+    "pillow (>=12.1.1,<13.0.0)",
+    "pdf2image (>=1.17.0,<2.0.0)",
+    "pymupdf (>=1.27.1,<2.0.0)",
+    "shapely (>=2.1.2,<3.0.0)",
+    "lxml (>=6.0.2,<7.0.0)",
+    "opencv-python (>=4.13.0.92,<5.0.0.0)",
+    "torch (>=2.10.0,<3.0.0)",
+    "torchvision (>=0.25.0,<0.26.0)"
 ]
 
 
@@ -43,3 +56,9 @@ python_version = "3.11"
 strict = false
 ignore_missing_imports = true
 warn_unused_configs = true
+
+[tool.poetry]
+package-mode = false
+[tool.poetry.dependencies]
+torch = {source = "pypi"}
+torchvision = {source = "pypi"}
