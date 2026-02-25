@@ -54,6 +54,8 @@ From repo root:
 - `make docx`
 - `make chunks`
 - `make index`
+- `make smoke`
+- `make test`
 - `make qa`
 - `make chat`
 - `make all`

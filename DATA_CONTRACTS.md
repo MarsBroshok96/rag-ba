@@ -66,3 +66,7 @@ List[chunk]:
 ## 6. Manifest — `data/manifest.json`
 - `docs`: dict[doc_id -> {pdf_path/source_path, page_image_tpl, crop_dir_tpl, ...}]
 Used for resolving best clickable path for sources.
+
+Notes:
+- `page_image_tpl` / `crop_dir_tpl` are generated as path templates (typically absolute filesystem paths).
+- This cleanup does not change manifest JSON schema; it only centralizes repo-local path resolution in code.

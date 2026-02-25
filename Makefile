@@ -1,6 +1,7 @@
 .PHONY: help fmt lint typecheck \
-        layout ocr canon export chunks index \
-        qa health clean clean_layout clean_ocr clean_export clean_vector all
+        layout ocr canon export_pdf docx chunks index qa chat health \
+        ollama_check ollama_serve smoke test \
+        clean clean_layout clean_ocr clean_export clean_vector all
 
 PY?=python
 POETRY?=poetry
@@ -12,6 +13,7 @@ INDEX_MOD=src.index.build_vector_index_from_chunks
 QA_MOD=src.index.test_query_with_citations
 HEALTH_MOD=src.index.health_check
 CHAT_MOD=src.app.chat_cli
+SMOKE_MOD=src.app.smoke_check
 
 # rag-ba-ocr 
 RAG_BA_OCR_DIR=apps/rag-ba-ocr
@@ -20,6 +22,13 @@ CANON_SCRIPT=build_canonical_doc.py
 FULLDOC_SCRIPT=export_full_document.py
 CHUNKS_SCRIPT=build_chunks.py
 DOCX_SCRIPT=docx_to_full_documents.py
+
+# generated artifacts
+LAYOUT_DIR=layout
+OCR_LAYOUT_DIR=$(RAG_BA_OCR_DIR)/layout_ocr
+OCR_CANON_DIR=$(RAG_BA_OCR_DIR)/canon
+OCR_EXPORT_DIR=$(RAG_BA_OCR_DIR)/export
+VECTORSTORE_DIR=data/vectorstore/chroma_rag
 
 help:
 	@echo "Targets:"
@@ -33,6 +42,8 @@ help:
 	@echo "  make index          - build Chroma index from chunks"
 	@echo "  make qa             - run local Q&A query_with_citations (requires Ollama)"
 	@echo "  make chat           - start CLI chat with RAG + history (requires Ollama)"
+	@echo "  make smoke          - quick repo/runtime readiness checks (no OCR/LLM execution)"
+	@echo "  make test           - run pytest unit tests (lightweight core coverage)"
 	@echo "  make ollama_check   - verify Ollama server is running"
 	@echo "  make ollama_serve   - run 'ollama serve' (blocking)"
 	@echo "  make clean          - remove generated artifacts"
@@ -49,6 +60,12 @@ typecheck:
 
 health:
 	$(POETRY) run $(PY) -m $(HEALTH_MOD)
+
+smoke:
+	$(POETRY) run $(PY) -m $(SMOKE_MOD)
+
+test:
+	$(POETRY) run pytest -q
 
 # ---- Ollama ----
 OLLAMA_URL?=http://127.0.0.1:11434
@@ -101,18 +118,18 @@ chat: ollama_check
 # ---- Cleaning ----
 
 clean_layout:
-	rm -rf layout/*
+	rm -rf $(LAYOUT_DIR)/*
 
 clean_ocr:
-	rm -rf $(RAG_BA_OCR_DIR)/layout_ocr/*
-	rm -rf $(RAG_BA_OCR_DIR)/canon/*
-	rm -rf $(RAG_BA_OCR_DIR)/export/*
+	rm -rf $(OCR_LAYOUT_DIR)/*
+	rm -rf $(OCR_CANON_DIR)/*
+	rm -rf $(OCR_EXPORT_DIR)/*
 
 clean_export:
-	rm -rf $(RAG_BA_OCR_DIR)/export/*
+	rm -rf $(OCR_EXPORT_DIR)/*
 
 clean_vector:
-	rm -rf data/vectorstore/chroma_rag/*
+	rm -rf $(VECTORSTORE_DIR)/*
 
 clean: clean_layout clean_ocr clean_vector
 	@echo "Cleaned generated artifacts."

@@ -24,7 +24,10 @@
 
 ## Structure
 - `src/` — приложение rag-ba (layout PDF, indexing, query, cli)
+- `src/common/project_paths.py` — единая конфигурация repo-local путей (data/layout/apps/...); использовать в root-модулях вместо ручных `../..`
 - `apps/rag-ba-ocr/` — отдельное приложение для OCR/каноникализации/экспорта/чанков (отдельный Poetry env)
+- `apps/rag-ba-ocr/src/pipeline/` — реализации OCR/export/docx/chunks; файлы в `apps/rag-ba-ocr/*.py` оставлены как совместимые entrypoint-обёртки
+- `apps/rag-ba-ocr/src/common/project_paths.py` — единая конфигурация путей для OCR-приложения (repo root, inbox, layout/export/canon/layout_ocr)
 - `data/inbox/`
   - `pdf/*.pdf`
   - `word/*.docx`
@@ -67,6 +70,8 @@ DOCX: data/inbox/word/*.docx
 2. Запустить полный цикл формирования БД для RAG:
 ```bash
 make all          # полный цикл
+make smoke        # быстрая проверка структуры/путей (без OCR/LLM)
+make test         # pytest unit tests (после установки dev-зависимостей)
 ```
 По шагам, если нужно дебажить:
 ```bash
@@ -107,3 +112,8 @@ apps/rag-ba-ocr/export/<doc_id>/{full_document.json,chunks.json} (генерир
 data/vectorstore/chroma_rag/ (генерируется)
 
 Эти папки обычно должны быть в .gitignore.
+
+## Notes on project structure
+- Индексация (`make index`) читает `chunks.json` из `apps/rag-ba-ocr/export/` **внутри этого репозитория**.
+- Скрипты в `apps/rag-ba-ocr/*.py` — это entrypoint-обёртки для совместимости с `Makefile`; основная логика перенесена в `apps/rag-ba-ocr/src/pipeline/` и `apps/rag-ba-ocr/src/ingestion/`.
+- Лёгкие unit-тесты вынесены в `tests/`; pytest настроен так, чтобы не коллектились CLI-скрипты вида `src/index/test_*.py`.

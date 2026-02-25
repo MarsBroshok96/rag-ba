@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 import os
-import json
-from pathlib import Path
-from typing import Any
 
 import chromadb
 from llama_index.core import Settings, VectorStoreIndex
@@ -12,14 +9,15 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.ollama import Ollama
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
-from src.index.test_query_with_citations import load_manifest, format_sources
+from src.common.project_paths import CHROMA_RAG_DIR, PROJECT_ROOT
+from src.index.citations import format_sources, load_manifest
 
 
 MAX_HISTORY = 6
 
 
-def build_index(project_root: Path):
-    persist_dir = project_root / "data" / "vectorstore" / "chroma_rag"
+def build_index():
+    persist_dir = CHROMA_RAG_DIR
     client = chromadb.PersistentClient(path=str(persist_dir))
     collection = client.get_collection(name="rag")
     vector_store = ChromaVectorStore(chroma_collection=collection)
@@ -34,7 +32,7 @@ def build_index(project_root: Path):
 def main():
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-    project_root = Path(__file__).resolve().parents[2]
+    project_root = PROJECT_ROOT
 
     Settings.embed_model = HuggingFaceEmbedding(
         model_name="intfloat/multilingual-e5-base"
@@ -42,7 +40,7 @@ def main():
     Settings.llm = Ollama(model="qwen2.5:14b-instruct", request_timeout=180.0)
 
     manifest = load_manifest(project_root)
-    index = build_index(project_root)
+    index = build_index()
 
     query_engine = index.as_query_engine(similarity_top_k=8)
 

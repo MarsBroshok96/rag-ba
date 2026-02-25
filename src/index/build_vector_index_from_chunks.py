@@ -13,6 +13,14 @@ from llama_index.core.storage.storage_context import StorageContext
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
+from src.common.project_paths import (
+    CHROMA_RAG_DIR,
+    MANIFEST_PATH,
+    OCR_EXPORT_ROOT,
+    PROJECT_ROOT,
+    RAG_BA_OCR_DIR,
+)
+
 
 def _iter_chunks(obj: Any) -> Iterable[dict[str, Any]]:
     """
@@ -159,20 +167,17 @@ def _build_manifest_for_doc(
 def main() -> None:
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
-    project_root = Path(__file__).resolve().parents[2]
+    project_root = PROJECT_ROOT
+    export_root = OCR_EXPORT_ROOT.resolve()
+    rag_ba_ocr_root = RAG_BA_OCR_DIR.resolve()
 
-    # Берем chunks.json из соседнего репо (теперь: export/<doc_id>/chunks.json)
-    export_root = (project_root.parent / "rag-ba" / "apps" / "rag-ba-ocr" / "export").resolve()
-    
-    rag_ba_ocr_root = (project_root.parent / "rag-ba" / "apps" / "rag-ba-ocr").resolve()
-    
     assert export_root.exists(), f"Missing export dir: {export_root}"
 
     chunks_paths = sorted(export_root.glob("*/chunks.json"))
     assert chunks_paths, f"No chunks.json found under: {export_root} (expected export/<doc_id>/chunks.json)"
 
     # Папка хранилища Chroma ВНУТРИ rag-ba (чтобы не путаться)
-    persist_dir = project_root / "data" / "vectorstore" / "chroma_rag"
+    persist_dir = CHROMA_RAG_DIR
     if persist_dir.exists():
         shutil.rmtree(persist_dir)
     persist_dir.mkdir(parents=True, exist_ok=True)
@@ -267,7 +272,7 @@ def main() -> None:
     print(f"Indexed {len(docs)} chunks into Chroma")
     print(f"Vector DB stored in {persist_dir}")
     
-    manifest_path = project_root / "data" / "manifest.json"
+    manifest_path = MANIFEST_PATH
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Manifest stored in {manifest_path}")

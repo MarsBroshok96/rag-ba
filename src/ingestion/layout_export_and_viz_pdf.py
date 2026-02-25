@@ -7,10 +7,12 @@ import layoutparser as lp
 from pdf2image import convert_from_path
 from PIL import Image, ImageDraw, ImageFont
 
+from src.common.project_paths import LAYOUT_ROOT, PDF_INBOX_DIR
+
 # ================= CONFIG =================
 
-INBOX_DIR = Path("data/inbox/pdf")
-OUT_ROOT = Path("layout")
+INBOX_DIR = PDF_INBOX_DIR
+OUT_ROOT = LAYOUT_ROOT
 
 COLOR_MAP = {
     "text": (0, 128, 255),

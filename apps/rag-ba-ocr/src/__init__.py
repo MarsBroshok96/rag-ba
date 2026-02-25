@@ -1,0 +1,2 @@
+"""rag-ba-ocr package."""
+

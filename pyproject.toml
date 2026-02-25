@@ -40,7 +40,8 @@ build-backend = "poetry.core.masonry.api"
 dev = [
     "ruff (>=0.14.14,<0.15.0)",
     "mypy (>=1.19.1,<2.0.0)",
-    "pre-commit (>=4.5.1,<5.0.0)"
+    "pre-commit (>=4.5.1,<5.0.0)",
+    "pytest (>=8.4.2,<9.0.0)"
 ]
 
 [tool.ruff]
@@ -56,6 +57,10 @@ python_version = "3.11"
 strict = false
 ignore_missing_imports = true
 warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
 
 [tool.poetry]
 package-mode = false

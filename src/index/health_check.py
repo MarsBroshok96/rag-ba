@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import shutil
-from pathlib import Path
 
 import chromadb
 from llama_index.core import Document, Settings, VectorStoreIndex
@@ -10,6 +9,8 @@ from llama_index.core.storage.storage_context import StorageContext
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.ollama import Ollama
 from llama_index.vector_stores.chroma import ChromaVectorStore
+
+from src.common.project_paths import CHROMA_DEMO_DIR
 
 
 def main() -> None:
@@ -20,8 +21,7 @@ def main() -> None:
     3) Query via local Ollama LLM (no OpenAI)
     """
 
-    project_root = Path(__file__).resolve().parents[2]
-    persist_dir = project_root / "data" / "vectorstore" / "chroma_demo"
+    persist_dir = CHROMA_DEMO_DIR
 
     if persist_dir.exists():
         shutil.rmtree(persist_dir)

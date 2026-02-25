@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.common.project_paths import OCR_CANON_ROOT, OCR_LAYOUT_ROOT
+
 
 def sort_regions_reading_order(regions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
@@ -82,8 +84,8 @@ def build_page_document(page_json_path: Path) -> dict[str, Any]:
 
 
 def main() -> None:
-    input_root = Path("layout_ocr")
-    output_root = Path("canon")
+    input_root = OCR_LAYOUT_ROOT
+    output_root = OCR_CANON_ROOT
     output_root.mkdir(exist_ok=True)
 
     assert input_root.exists(), f"Missing input dir: {input_root}"
