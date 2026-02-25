@@ -54,6 +54,8 @@ Root:
 poetry install
 cd apps/rag-ba-ocr
 poetry install
+poetry run pip install --no-cache-dir "paddlepaddle-gpu==3.3.0" \
+  -f https://www.paddlepaddle.org.cn/packages/stable/cu126/paddlepaddle-gpu/
 cd ../..
 ```
 

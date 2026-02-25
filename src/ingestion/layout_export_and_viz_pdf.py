@@ -291,7 +291,7 @@ def main() -> None:
     assert INBOX_DIR.exists(), f"Missing inbox: {INBOX_DIR}"
     OUT_ROOT.mkdir(parents=True, exist_ok=True)
 
-    model = lp.Detectron2LayoutModel(
+    model = lp.models.Detectron2LayoutModel(
         config_path="models/d2_configs/COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml",
         model_path="models/publaynet_frcnn_model_final.pth",
         label_map={0: "text", 1: "title", 2: "list", 3: "table", 4: "figure", 5: "other"},

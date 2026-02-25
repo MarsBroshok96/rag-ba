@@ -38,3 +38,44 @@ Symptoms:
 - Q/A fails or hangs
 Fix:
 - ensure `ollama serve` running and model pulled.
+
+## Detectron2 installation fails with:
+Symptoms:
+ModuleNotFoundError: No module named 'torch'
+
+during:
+pip install 'git+https://github.com/facebookresearch/detectron2.git'
+
+ Root Cause
+pip uses PEP517 build isolation by default.
+When installing detectron2, pip creates a temporary build environment (/tmp/pip-build-env-*) which does not see torch installed in the current venv.
+detectron2 requires torch at build time, so installation fails.
+
+Correct Installation Order (GPU / CUDA):
+
+1️. Install PyTorch first (matching your CUDA)
+poetry run pip install --upgrade pip
+poetry run pip install --index-url https://download.pytorch.org/whl/cu126 torch torchvision torchaudio
+
+2️. Install Detectron2 WITHOUT build isolation
+poetry run pip install -U --no-build-isolation \
+  'git+https://github.com/facebookresearch/detectron2.git'
+
+If compilation fails (C++ / ninja errors)
+
+3. Install system toolchain:
+sudo apt update
+sudo apt install -y build-essential python3-dev git
+poetry run pip install -U ninja
+
+Then retry:
+poetry run pip install -U --no-build-isolation \
+  'git+https://github.com/facebookresearch/detectron2.git'
+
+
+## torch-gpu conflicts with paddle-gpu
+Symptoms:
+from torch._C import * # noqa: F403 ^^^^^^^^^^^^^^^^^^^^^^ ImportError: .../.../rag-ba-ocr/.venv/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so: undefined symbol: ncclCommShrink
+Fix:
+poetry run pip uninstall -y torch torchvision torchaudio
+poetry run pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
