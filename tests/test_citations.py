@@ -90,5 +90,46 @@ def test_format_sources_includes_clickable_path_when_present(tmp_path: Path) -> 
     out = format_sources(resp, project_root=tmp_path, manifest=manifest, include_paths=True, snippet_chars=20)
     assert "PATH:" in out
     assert "URI:" in out
+    assert "DOC_PATH:" in out
+    assert "DOC_URI:" in out
     assert "score=0.9123" in out
     assert "SNIPPET: line one line two" in out
+
+
+def test_format_sources_can_filter_by_citation_ids_preserving_labels(tmp_path: Path) -> None:
+    (tmp_path / "doc.pdf").write_bytes(b"x")
+    (tmp_path / "page001.png").write_bytes(b"x")
+    (tmp_path / "page002.png").write_bytes(b"x")
+    (tmp_path / "page003.png").write_bytes(b"x")
+
+    manifest = {
+        "docs": {
+            "docA": {
+                "page_image_tpl": str(tmp_path / "page{page:03d}.png"),
+                "crop_dir_tpl": str(tmp_path / "page{page:03d}_crops"),
+                "source_path": str(tmp_path / "doc.pdf"),
+            }
+        }
+    }
+
+    resp = _FakeResp(
+        [
+            _FakeSourceNode("text 1", {"doc_id": "docA", "page": 1, "chunk_id": "c1"}),
+            _FakeSourceNode("text 2", {"doc_id": "docA", "page": 2, "chunk_id": "c2"}),
+            _FakeSourceNode("text 3", {"doc_id": "docA", "page": 3, "chunk_id": "c3"}),
+        ]
+    )
+
+    out = format_sources(
+        resp,
+        project_root=tmp_path,
+        manifest=manifest,
+        include_paths=False,
+        only_source_ids={2, 3},
+    )
+
+    assert "[1]" not in out
+    assert "[2]" in out
+    assert "[3]" in out
+    assert "text 2" in out
+    assert "text 3" in out

@@ -21,6 +21,7 @@ class ChatMessage(BaseModel):
     role: Literal["user", "assistant", "system"]
     content: str = Field(min_length=1)
     ts: str
+    sources_text: str | None = None
 
 
 class ChatFile(BaseModel):
@@ -62,4 +63,3 @@ class ChatSendResponse(BaseModel):
 
 class OkResponse(BaseModel):
     ok: bool = True
-

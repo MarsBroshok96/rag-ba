@@ -84,6 +84,7 @@ async def test_web_api_send_uses_chat_settings_memory_k_and_persists_messages(we
     resp1 = await web.send_chat_message(SendChatRequest(chat_id=chat_id, message="Привет"))
     assert resp1.assistant_message.role == "assistant"
     assert resp1.assistant_message.content == "stub-answer:Привет"
+    assert (resp1.assistant_message.sources_text or "").startswith("[1]")
     assert resp1.sources_text.startswith("[1]")
     assert resp1.context_messages_used == 1
 
@@ -105,6 +106,8 @@ async def test_web_api_send_uses_chat_settings_memory_k_and_persists_messages(we
         "user",
         "assistant",
     ]
+    assert final_chat.messages[1].sources_text
+    assert final_chat.messages[3].sources_text
 
 
 @pytest.mark.anyio

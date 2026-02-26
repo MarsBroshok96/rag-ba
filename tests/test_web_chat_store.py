@@ -24,6 +24,10 @@ def test_chat_store_create_append_update_delete(tmp_path):
 
     chat = store.append_message(chat.chat_id, role="assistant", content="Ответ")
     assert [m.role for m in chat.messages] == ["user", "assistant"]
+    assert chat.messages[-1].sources_text is None
+
+    chat = store.append_message(chat.chat_id, role="assistant", content="Ответ 2", sources_text="[1] src")
+    assert chat.messages[-1].sources_text == "[1] src"
 
     chat = store.update_settings(chat.chat_id, memory_k=3)
     assert chat.settings.memory_k == 3
@@ -31,11 +35,12 @@ def test_chat_store_create_append_update_delete(tmp_path):
     summaries = store.list_chats()
     assert len(summaries) == 1
     assert summaries[0].chat_id == chat.chat_id
-    assert summaries[0].message_count == 2
+    assert summaries[0].message_count == 3
 
     payload = json.loads((tmp_path / "chats" / f"{chat.chat_id}.json").read_text(encoding="utf-8"))
     assert payload["settings"]["memory_k"] == 3
     assert payload["messages"][0]["role"] == "user"
+    assert payload["messages"][2]["sources_text"] == "[1] src"
 
     store.delete_chat(chat.chat_id)
     assert store.list_chats() == []

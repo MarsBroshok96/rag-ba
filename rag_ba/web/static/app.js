@@ -110,9 +110,11 @@ function buildSourceLineElement(line) {
     row.append(document.createTextNode(indent));
   }
 
-  if (trimmed.startsWith("PATH:")) {
-    const pathValue = trimmed.slice("PATH:".length).trim();
-    row.append(document.createTextNode("PATH: "));
+  const pathLabelMatch = trimmed.match(/^(DOC_PATH|PATH):\s*(.+)$/);
+  if (pathLabelMatch) {
+    const label = pathLabelMatch[1];
+    const pathValue = pathLabelMatch[2].trim();
+    row.append(document.createTextNode(`${label}: `));
     const link = document.createElement("a");
     link.className = "sources-link";
     link.href = sourceFileProxyHref(pathValue);
@@ -123,9 +125,11 @@ function buildSourceLineElement(line) {
     return row;
   }
 
-  if (trimmed.startsWith("URI:")) {
-    const uriValue = trimmed.slice("URI:".length).trim();
-    row.append(document.createTextNode("URI:  "));
+  const uriLabelMatch = trimmed.match(/^(DOC_URI|URI):\s*(.+)$/);
+  if (uriLabelMatch) {
+    const label = uriLabelMatch[1];
+    const uriValue = uriLabelMatch[2].trim();
+    row.append(document.createTextNode(`${label}: `));
     const link = document.createElement("a");
     link.className = "sources-link";
     link.href = uriToWebHref(uriValue);
@@ -192,6 +196,9 @@ function renderMessages(lastSourcesText = "") {
     const lastMsg = chat.messages[chat.messages.length - 1];
     if (lastMsg && lastMsg.role === "assistant") {
       lastMsg._sourcesText = lastSourcesText;
+      if (!lastMsg.sources_text) {
+        lastMsg.sources_text = lastSourcesText;
+      }
     }
   }
 
@@ -211,7 +218,12 @@ function renderMessages(lastSourcesText = "") {
     meta.textContent = `${msg.role} • ${formatDate(msg.ts)}`;
     container.appendChild(meta);
 
-    if (msg.role === "assistant" && typeof msg._sourcesText === "string" && msg._sourcesText.trim()) {
+    const msgSourcesText =
+      (typeof msg.sources_text === "string" && msg.sources_text) ||
+      (typeof msg._sourcesText === "string" && msg._sourcesText) ||
+      "";
+
+    if (msg.role === "assistant" && msgSourcesText.trim()) {
       const panelKey = sourcePanelKey(chat.chat_id, msg, index);
       const toggle = document.createElement("button");
       toggle.type = "button";
@@ -223,7 +235,7 @@ function renderMessages(lastSourcesText = "") {
       panelWrap.className = "sources-box";
       panelWrap.appendChild(toggle);
 
-      const panel = buildSourcesPanel(msg._sourcesText);
+      const panel = buildSourcesPanel(msgSourcesText);
       panel.hidden = !open;
       panelWrap.appendChild(panel);
 
@@ -359,6 +371,7 @@ async function sendMessage(event) {
       const lastMsg = state.currentChat.messages[state.currentChat.messages.length - 1];
       if (lastMsg?.role === "assistant") {
         lastMsg._sourcesText = result.sources_text || "";
+        lastMsg.sources_text = result.sources_text || "";
       }
     }
     await refreshChats();

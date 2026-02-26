@@ -108,10 +108,17 @@ class ChatStore:
         self.save_chat(chat)
         return chat
 
-    def append_message(self, chat_id: str, *, role: str, content: str) -> ChatFile:
+    def append_message(
+        self,
+        chat_id: str,
+        *,
+        role: str,
+        content: str,
+        sources_text: str | None = None,
+    ) -> ChatFile:
         chat = self.get_chat(chat_id)
         ts = utc_now_iso()
-        msg = ChatMessage(role=role, content=content, ts=ts)
+        msg = ChatMessage(role=role, content=content, ts=ts, sources_text=sources_text)
         chat.messages.append(msg)
         if role == "user" and chat.title == DEFAULT_CHAT_TITLE and len(
             [m for m in chat.messages if m.role == "user"]
@@ -120,4 +127,3 @@ class ChatStore:
         chat.updated_at = ts
         self.save_chat(chat)
         return chat
-

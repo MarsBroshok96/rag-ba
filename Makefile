@@ -1,4 +1,6 @@
 .PHONY: help fmt lint typecheck \
+        deps_layout deps_layout_fix \
+        deps_ocr deps_ocr_fix \
         layout ocr canon export_pdf docx chunks index qa chat health \
         web web_stop \
         ollama_check ollama_serve ollama_stop smoke test \
@@ -32,6 +34,14 @@ OCR_LAYOUT_DIR=$(RAG_BA_OCR_DIR)/layout_ocr
 OCR_CANON_DIR=$(RAG_BA_OCR_DIR)/canon
 OCR_EXPORT_DIR=$(RAG_BA_OCR_DIR)/export
 VECTORSTORE_DIR=data/vectorstore/chroma_rag
+
+# detectron2 is intentionally bootstrapped via pip (no build isolation) because
+# Poetry sync removes undeclared native packages and detectron2 often fails under
+# build isolation without torch visible at build time.
+DETECTRON2_GIT_SPEC?=git+https://github.com/facebookresearch/detectron2.git
+OPENCV_PYTHON_VERSION?=4.13.0.92
+PADDLE_GPU_VERSION?=3.3.0
+PADDLE_GPU_WHEEL_URL?=https://www.paddlepaddle.org.cn/packages/stable/cu126/paddlepaddle-gpu/
 
 help:
 	@echo "Targets:"
@@ -100,10 +110,42 @@ ollama_stop:
 
 # ---- Pipeline steps ----
 
-layout:
+deps_layout:
+	@$(POETRY) run $(PY) -c "import torch, torchvision, torchvision.ops, detectron2, cv2; assert hasattr(cv2, 'getPerspectiveTransform')" >/dev/null 2>&1 || $(MAKE) deps_layout_fix
+
+deps_layout_fix:
+	@$(POETRY) run $(PY) -c "import torch, torchvision, torchvision.ops" >/dev/null 2>&1 || ( \
+		echo "[deps_layout] ERROR: torch/torchvision missing or incompatible in root env."; \
+		echo "[deps_layout] Install a matching pair first, then retry make."; \
+		exit 1; \
+	)
+	@$(POETRY) run $(PY) -c "import cv2; assert hasattr(cv2, 'getPerspectiveTransform')" >/dev/null 2>&1 || ( \
+		echo "[deps_layout] Reinstalling opencv-python ($(OPENCV_PYTHON_VERSION)) in root Poetry env..."; \
+		$(POETRY) run pip install --force-reinstall --no-cache-dir "opencv-python==$(OPENCV_PYTHON_VERSION)"; \
+	)
+	@$(POETRY) run $(PY) -c "import detectron2" >/dev/null 2>&1 || ( \
+		echo "[deps_layout] Reinstalling detectron2 in root Poetry env..."; \
+		$(POETRY) run pip install -U --no-build-isolation "$(DETECTRON2_GIT_SPEC)"; \
+	)
+	@$(POETRY) run $(PY) -c "import torch, torchvision, torchvision.ops, detectron2, cv2; assert hasattr(cv2, 'getPerspectiveTransform')"
+
+layout: deps_layout
 	$(POETRY) run $(PY) -m $(LAYOUT_MOD)
 
-ocr:
+deps_ocr:
+	@$(POETRY) -C $(RAG_BA_OCR_DIR) run $(PY) -c "import cv2, paddle, paddleocr, paddlex; from paddleocr import PaddleOCR; assert hasattr(cv2, 'imdecode'); assert paddle.is_compiled_with_cuda()" >/dev/null 2>&1 || $(MAKE) deps_ocr_fix
+
+deps_ocr_fix:
+	@echo "[deps_ocr] Restoring declared OCR deps in $(RAG_BA_OCR_DIR) Poetry env..."
+	@$(POETRY) -C $(RAG_BA_OCR_DIR) install
+	@$(POETRY) -C $(RAG_BA_OCR_DIR) run $(PY) -c "import paddle; assert paddle.is_compiled_with_cuda()" >/dev/null 2>&1 || ( \
+		echo "[deps_ocr] Installing paddlepaddle-gpu ($(PADDLE_GPU_VERSION))..."; \
+		$(POETRY) -C $(RAG_BA_OCR_DIR) run pip uninstall -y paddlepaddle >/dev/null 2>&1 || true; \
+		$(POETRY) -C $(RAG_BA_OCR_DIR) run pip install --no-cache-dir "paddlepaddle-gpu==$(PADDLE_GPU_VERSION)" -f "$(PADDLE_GPU_WHEEL_URL)"; \
+	)
+	@$(POETRY) -C $(RAG_BA_OCR_DIR) run $(PY) -c "import cv2, paddle, paddleocr, paddlex; from paddleocr import PaddleOCR; assert hasattr(cv2, 'imdecode'); assert paddle.is_compiled_with_cuda()"
+
+ocr: deps_ocr
 	$(POETRY) -C $(RAG_BA_OCR_DIR) run $(PY) $(OCR_SCRIPT)
 
 canon:
@@ -129,6 +171,11 @@ all: layout ocr canon export_pdf docx chunks index
 
 chat: ollama_check
 	$(POETRY) run $(PY) -m $(CHAT_MOD)
+
+chat_probe: ollama_check
+	@test -n "$(Q)" || (echo 'Usage: make chat_probe Q="your question"' && exit 2)
+	$(POETRY) run $(PY) scripts/rag_chat_probe.py --question "$(Q)" --memory-k 6 --timeout-sec 240 --output /tmp/rag_chat_probe_result.json
+	@echo "Result: /tmp/rag_chat_probe_result.json"
 
 web:
 	@$(MAKE) web_stop >/dev/null 2>&1 || true

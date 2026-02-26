@@ -147,7 +147,12 @@ async def send_chat_message(payload: SendChatRequest) -> ChatSendResponse | JSON
             messages=[m.model_dump(mode="json") for m in chat.messages],
             memory_k=chat.settings.memory_k,
         )
-        chat = chat_store.append_message(payload.chat_id, role="assistant", content=reply.answer)
+        chat = chat_store.append_message(
+            payload.chat_id,
+            role="assistant",
+            content=reply.answer,
+            sources_text=reply.sources_text,
+        )
         assistant_message = chat.messages[-1]
         return ChatSendResponse(
             chat=chat,

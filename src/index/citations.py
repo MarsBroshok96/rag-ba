@@ -60,6 +60,23 @@ def resolve_best_path(
     return None
 
 
+def resolve_source_document_path(
+    *,
+    manifest: dict[str, Any],
+    md: dict[str, Any],
+) -> Path | None:
+    doc_id = md.get("doc_id")
+    if not doc_id:
+        return None
+    doc = (manifest.get("docs") or {}).get(doc_id) or {}
+    source_path = doc.get("source_path")
+    if isinstance(source_path, str) and source_path:
+        p = Path(source_path).resolve()
+        if p.exists():
+            return p
+    return None
+
+
 def format_sources(
     resp: Any,
     project_root: Path,
@@ -67,6 +84,7 @@ def format_sources(
     max_sources: int = 8,
     snippet_chars: int = 700,
     include_paths: bool = True,
+    only_source_ids: set[int] | None = None,
 ) -> str:
     def _snip(s: str, n: int) -> str:
         s = (s or "").replace("\n", " ").strip()
@@ -74,6 +92,8 @@ def format_sources(
 
     lines: list[str] = []
     for i, sn in enumerate(getattr(resp, "source_nodes", [])[:max_sources], start=1):
+        if only_source_ids is not None and i not in only_source_ids:
+            continue
         md = sn.node.metadata or {}
 
         rid = md.get("region_id") or md.get("id") or md.get("chunk_id")
@@ -86,20 +106,33 @@ def format_sources(
         txt = _snip(sn.node.get_text() or "", snippet_chars)
 
         best_path = resolve_best_path(manifest=manifest, project_root=project_root, md=md)
-        uri = None
+        best_uri = None
         if best_path:
             try:
-                uri = best_path.as_uri()
+                best_uri = best_path.as_uri()
             except Exception:
-                uri = None
+                best_uri = None
+
+        doc_path = resolve_source_document_path(manifest=manifest, md=md)
+        doc_uri = None
+        if doc_path:
+            try:
+                doc_uri = doc_path.as_uri()
+            except Exception:
+                doc_uri = None
 
         head = f"[{i}] score={score_s} file={src} page={page} type={typ} region={rid}"
 
         path_line = ""
         if include_paths and best_path:
             path_line = f"    PATH: {best_path}"
-            if uri:
-                path_line += f"\n    URI:  {uri}"
+            if best_uri:
+                path_line += f"\n    URI:  {best_uri}"
+        if include_paths and doc_path:
+            doc_lines = f"    DOC_PATH: {doc_path}"
+            if doc_uri:
+                doc_lines += f"\n    DOC_URI:  {doc_uri}"
+            path_line = (path_line + "\n" if path_line else "") + doc_lines
 
         lines.append(head + ("\n" + path_line if path_line else "") + f"\n    SNIPPET: {txt}")
 
