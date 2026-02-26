@@ -1,6 +1,7 @@
 .PHONY: help fmt lint typecheck \
         layout ocr canon export_pdf docx chunks index qa chat health \
-        ollama_check ollama_serve smoke test \
+        web web_stop \
+        ollama_check ollama_serve ollama_stop smoke test \
         clean clean_layout clean_ocr clean_export clean_vector all
 
 PY?=python
@@ -14,6 +15,8 @@ QA_MOD=src.index.test_query_with_citations
 HEALTH_MOD=src.index.health_check
 CHAT_MOD=src.app.chat_cli
 SMOKE_MOD=src.app.smoke_check
+WEB_APP=rag_ba.web.app:app
+WEB_PORT?=8000
 
 # rag-ba-ocr 
 RAG_BA_OCR_DIR=apps/rag-ba-ocr
@@ -42,10 +45,13 @@ help:
 	@echo "  make index          - build Chroma index from chunks"
 	@echo "  make qa             - run local Q&A query_with_citations (requires Ollama)"
 	@echo "  make chat           - start CLI chat with RAG + history (requires Ollama)"
+	@echo "  make web            - start local web chat UI (FastAPI + Bootstrap)"
+	@echo "  make web_stop       - stop local web chat UI process (uvicorn) if stuck after Ctrl+Z"
 	@echo "  make smoke          - quick repo/runtime readiness checks (no OCR/LLM execution)"
 	@echo "  make test           - run pytest unit tests (lightweight core coverage)"
 	@echo "  make ollama_check   - verify Ollama server is running"
 	@echo "  make ollama_serve   - run 'ollama serve' (blocking)"
+	@echo "  make ollama_stop    - stop local 'ollama serve' if stuck after Ctrl+Z"
 	@echo "  make clean          - remove generated artifacts"
 	@echo "  make fmt/lint/typecheck/health"
 
@@ -69,6 +75,7 @@ test:
 
 # ---- Ollama ----
 OLLAMA_URL?=http://127.0.0.1:11434
+OLLAMA_PORT?=11434
 
 ollama_check:
 	@curl -fsS $(OLLAMA_URL)/api/tags >/dev/null 2>&1 || ( \
@@ -81,7 +88,15 @@ ollama_check:
 
 # удобный таргет для запуска сервера вручную (блокирующий)
 ollama_serve:
+	@$(MAKE) ollama_stop >/dev/null 2>&1 || true
+	@sleep 1
 	@ollama serve
+
+ollama_stop:
+	@command -v fuser >/dev/null 2>&1 && fuser -k $(OLLAMA_PORT)/tcp >/dev/null 2>&1 || true
+	@command -v lsof >/dev/null 2>&1 && lsof -ti tcp:$(OLLAMA_PORT) | xargs -r kill >/dev/null 2>&1 || true
+	@pkill -f '(^|/)ollama serve$$' >/dev/null 2>&1 || pkill -f 'ollama serve' >/dev/null 2>&1 || true
+	@pkill -9 -f 'ollama serve' >/dev/null 2>&1 || true
 
 # ---- Pipeline steps ----
 
@@ -114,6 +129,18 @@ all: layout ocr canon export_pdf docx chunks index
 
 chat: ollama_check
 	$(POETRY) run $(PY) -m $(CHAT_MOD)
+
+web:
+	@$(MAKE) web_stop >/dev/null 2>&1 || true
+	@sleep 1
+	$(POETRY) run uvicorn $(WEB_APP) --reload
+
+web_stop:
+	@command -v fuser >/dev/null 2>&1 && fuser -k $(WEB_PORT)/tcp >/dev/null 2>&1 || true
+	@command -v lsof >/dev/null 2>&1 && lsof -ti tcp:$(WEB_PORT) | xargs -r kill >/dev/null 2>&1 || true
+	@pkill -f 'uvicorn .*rag_ba\.web\.app:app' >/dev/null 2>&1 || true
+	@pkill -f 'rag_ba\.web\.app:app' >/dev/null 2>&1 || true
+	@pkill -9 -f 'rag_ba\.web\.app:app' >/dev/null 2>&1 || true
 
 # ---- Cleaning ----
 

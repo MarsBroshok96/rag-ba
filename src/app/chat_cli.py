@@ -2,47 +2,14 @@ from __future__ import annotations
 
 import os
 
-import chromadb
-from llama_index.core import Settings, VectorStoreIndex
-from llama_index.core.storage.storage_context import StorageContext
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.ollama import Ollama
-from llama_index.vector_stores.chroma import ChromaVectorStore
-
-from src.common.project_paths import CHROMA_RAG_DIR, PROJECT_ROOT
-from src.index.citations import format_sources, load_manifest
-
+from src.app.rag_chat_backend import RagChatBackend
 
 MAX_HISTORY = 6
 
 
-def build_index():
-    persist_dir = CHROMA_RAG_DIR
-    client = chromadb.PersistentClient(path=str(persist_dir))
-    collection = client.get_collection(name="rag")
-    vector_store = ChromaVectorStore(chroma_collection=collection)
-    storage_context = StorageContext.from_defaults(vector_store=vector_store)
-
-    return VectorStoreIndex.from_vector_store(
-        vector_store=vector_store,
-        storage_context=storage_context,
-    )
-
-
 def main():
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-
-    project_root = PROJECT_ROOT
-
-    Settings.embed_model = HuggingFaceEmbedding(
-        model_name="intfloat/multilingual-e5-base"
-    )
-    Settings.llm = Ollama(model="qwen2.5:14b-instruct", request_timeout=180.0)
-
-    manifest = load_manifest(project_root)
-    index = build_index()
-
-    query_engine = index.as_query_engine(similarity_top_k=8)
+    backend = RagChatBackend()
 
     history: list[dict[str, str]] = []
 
@@ -66,56 +33,14 @@ def main():
         history.append({"role": "user", "content": user_input})
         history = history[-MAX_HISTORY:]
 
-        # Retrieve
-        resp = query_engine.query(user_input)
-
-        sources_block_llm = format_sources(
-            resp,
-            project_root=project_root,
-            manifest=manifest,
-            max_sources=6,
-            snippet_chars=700,
-            include_paths=False,
-        )
-
-        conversation_context = "\n".join(
-            f"{m['role']}: {m['content']}" for m in history
-        )
-
-        prompt = f"""
-You are answering using RAG.
-
-Conversation history:
-{conversation_context}
-
-Rules:
-- Use ONLY the information explicitly present in the SNIPPET texts below.
-- Every bullet/claim must end with citations like [1] or [2][3].
-- Do NOT introduce new concepts not present in snippets (e.g. "regulatory compliance") unless those words/ideas appear in snippets.
-- If the snippets are insufficient for some part of the question, write: "NOT FOUND IN DOCUMENTS" and stop. No hypothesis unless explicitly requested..
-
-Sources:
-{sources_block_llm}
-
-Answer:
-"""
-
-        final = Settings.llm.complete(prompt).text
+        reply = backend.generate_reply(user_text=user_input, messages=history, memory_k=MAX_HISTORY)
+        final = reply.answer
 
         print("\n--- ANSWER ---")
         print(final)
 
         print("\n--- SOURCES ---")
-        print(
-            format_sources(
-                resp,
-                project_root=project_root,
-                manifest=manifest,
-                max_sources=6,
-                snippet_chars=200,
-                include_paths=True,
-            )
-        )
+        print(reply.sources_text)
 
         history.append({"role": "assistant", "content": final})
 

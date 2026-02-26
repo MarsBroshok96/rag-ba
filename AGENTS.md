@@ -11,6 +11,7 @@ The pipeline produces: layout → OCR → canonical → full_document → chunks
 
 ## Monorepo layout
 - `rag-ba/` (root): indexing, querying, CLI, PDF layout detection, orchestrating Makefile.
+- `rag_ba/web/` (root package): local FastAPI web chat UI/API with disk-backed chat history (reuses root RAG backend).
 - `apps/rag-ba-ocr/`: OCR + canonicalization + export + chunking. Separate Poetry env.
 
 ## Pipeline overview (high-level)
@@ -58,6 +59,9 @@ From repo root:
 - `make test`
 - `make qa`
 - `make chat`
+- `make web`
+- `make web_stop`
+- `make ollama_stop`
 - `make all`
 
 Important: `make ocr/canon/export/chunks/docx` run under the `apps/rag-ba-ocr` Poetry environment.

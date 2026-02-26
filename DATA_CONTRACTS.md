@@ -67,6 +67,17 @@ List[chunk]:
 - `docs`: dict[doc_id -> {pdf_path/source_path, page_image_tpl, crop_dir_tpl, ...}]
 Used for resolving best clickable path for sources.
 
+## 7. Web chat session — `data/chats/<chat_id>.json`
+- `chat_id`: str (UUID)
+- `title`: str
+- `created_at`: ISO-8601 UTC string
+- `updated_at`: ISO-8601 UTC string
+- `messages`: list[{role, content, ts}]
+  - `role`: `"user" | "assistant" | "system"`
+  - `content`: str
+  - `ts`: ISO-8601 UTC string
+- `settings`: {`memory_k`: int}
+
 Notes:
 - `page_image_tpl` / `crop_dir_tpl` are generated as path templates (typically absolute filesystem paths).
 - This cleanup does not change manifest JSON schema; it only centralizes repo-local path resolution in code.
